@@ -8,6 +8,10 @@ Targeting:
 
 ---
 
+
+## Live Demo
+🌐 **Production App:** [https://nexus-pay-lac.vercel.app](https://nexus-pay-lac.vercel.app)
+
 ## Overview
 
 **NexusPay** is an autonomous agentic commerce platform that acts as a financial command tower for businesses and solopreneurs. It allows an AI agent to autonomously source products, analyze competitive vendor quotes, evaluate corporate purchasing policies, trigger human-in-the-loop managerial approvals when spend thresholds are exceeded, and execute settlement via the **PayPal Sandbox API**.
