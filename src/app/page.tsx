@@ -1,68 +1,182 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState } from 'react';
+import { Header } from '@/components/Header';
+import { StatsBar } from '@/components/StatsBar';
+import { PromptBar } from '@/components/PromptBar';
+import { AgentCanvas } from '@/components/AgentCanvas';
+import { LedgerGrid } from '@/components/LedgerGrid';
+import { INITIAL_LEDGER_ITEMS } from '@/lib/mockData';
+import { AgentStep, LedgerItem, VendorQuote } from '@/types';
+import { Sparkles, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export default function Home() {
+  const [ledger, setLedger] = useState<LedgerItem[]>(INITIAL_LEDGER_ITEMS);
+  const [steps, setSteps] = useState<AgentStep[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [statusNotification, setStatusNotification] = useState<{
+    type: 'success' | 'alert';
+    message: string;
+  } | null>(null);
+
+  const handleExecuteAgent = async (query: string, category?: string, budgetLimit?: number) => {
+    setIsProcessing(true);
+    setStatusNotification(null);
+
+    try {
+      const res = await fetch('/api/agent/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, category, budgetLimit }),
+      });
+
+      const data = await res.json();
+      if (!data.steps) {
+        throw new Error(data.error || 'Failed to run agent');
+      }
+
+      setSteps(data.steps);
+
+      if (data.newLedgerItem) {
+        setLedger(prev => [data.newLedgerItem, ...prev]);
+        setStatusNotification({
+          type: 'success',
+          message: `PayPal Sandbox Order ${data.newLedgerItem.paypalOrderId} settled and committed to AG Grid Ledger!`,
+        });
+      } else if (data.requiresApproval) {
+        setStatusNotification({
+          type: 'alert',
+          message: 'Spend exceeds autonomous limit ($250). Human approval required in Agent Flow Graph.',
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setStatusNotification({
+        type: 'alert',
+        message: err.message || 'Agent error encountered',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleApproveQuote = async (quote: VendorQuote) => {
+    setIsProcessing(true);
+    setStatusNotification(null);
+
+    try {
+      const res = await fetch('/api/agent/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve', quote }),
+      });
+
+      const data = await res.json();
+      if (data.steps && data.newLedgerItem) {
+        setSteps(prev => [...prev.filter(s => s.type !== 'approval'), ...data.steps]);
+        setLedger(prev => [data.newLedgerItem, ...prev]);
+        setStatusNotification({
+          type: 'success',
+          message: `Manager Approved! PayPal Order ${data.newLedgerItem.paypalOrderId} captured and logged.`,
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setStatusNotification({
+        type: 'alert',
+        message: 'Failed to approve PayPal order',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReject = () => {
+    setSteps(prev => [
+      ...prev.filter(s => s.type !== 'approval'),
+      {
+        id: 'rejected',
+        stepNumber: 5,
+        type: 'completed',
+        title: 'Procurement Rejected by Policy Gate',
+        description: 'Manager rejected quote. Order canceled without dispatching PayPal funds.',
+        timestamp: new Date().toTimeString().split(' ')[0],
+        status: 'failed',
+      }
+    ]);
+    setStatusNotification({
+      type: 'alert',
+      message: 'Procurement order rejected. Zero funds dispatched.',
+    });
+  };
+
+  const handleReset = () => {
+    setLedger(INITIAL_LEDGER_ITEMS);
+    setSteps([]);
+    setStatusNotification(null);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-[#070412] text-white flex flex-col font-sans selection:bg-purple-500 selection:text-white">
+      {/* Command Header */}
+      <Header onReset={handleReset} isProcessing={isProcessing} />
+
+      {/* Main Body */}
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-6 space-y-6">
+        {/* Banner Notification */}
+        {statusNotification && (
+          <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 text-sm font-mono transition-all ${
+            statusNotification.type === 'success'
+              ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-200'
+              : 'bg-amber-950/60 border-amber-500/50 text-amber-200'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              {statusNotification.type === 'success' ? (
+                <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
+              )}
+              <span>{statusNotification.message}</span>
+            </div>
+            <button
+              onClick={() => setStatusNotification(null)}
+              className="text-xs opacity-70 hover:opacity-100 uppercase"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Real-time KPI Stats Bar */}
+        <StatsBar ledger={ledger} />
+
+        {/* Agent Mission Prompt Bar */}
+        <div className="bg-[#0e0824]/90 border border-purple-900/40 rounded-2xl p-5 shadow-xl">
+          <PromptBar onExecute={handleExecuteAgent} isProcessing={isProcessing} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        {/* Visual Graph & Reasoning Engine (React Flow) */}
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold font-mono tracking-wider uppercase text-purple-200 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-amber-400" />
+              Autonomous Agent Decision Graph
+            </h2>
+            <span className="text-xs font-mono text-purple-400/70">
+              Interactive Zoom / Pan &middot; Live Policy Gating
+            </span>
+          </div>
+          <AgentCanvas
+            steps={steps}
+            onApprove={handleApproveQuote}
+            onReject={handleReject}
+          />
+        </section>
+
+        {/* High-density Institutional Ledger (AG Grid) */}
+        <section className="space-y-2 pb-10">
+          <LedgerGrid items={ledger} />
+        </section>
       </main>
     </div>
   );

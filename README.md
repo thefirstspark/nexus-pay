@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NexusPay: Autonomous Agentic Commerce Control Tower
 
-## Getting Started
+**PayPal AI Hackathon 2026 Submission**
+Targeting:
+- **Overall Grand Prize ($12,000)**
+- **Best Use of Agentic Commerce ($5,000)**
+- **AG Grid Sponsor Prize ($5,000)**
 
-First, run the development server:
+---
+
+## Overview
+
+**NexusPay** is an autonomous agentic commerce platform that acts as a financial command tower for businesses and solopreneurs. It allows an AI agent to autonomously source products, analyze competitive vendor quotes, evaluate corporate purchasing policies, trigger human-in-the-loop managerial approvals when spend thresholds are exceeded, and execute settlement via the **PayPal Sandbox API**.
+
+The entire reasoning tree is visualized in real time on a **React Flow interactive node canvas**, while all transactions, quotes, and audit trails stream into an **AG Grid v36 institutional data ledger**.
+
+---
+
+## Core Features
+
+1. **Autonomous Procurement Engine:** Converts natural-language requests into multi-step agent actions.
+2. **Policy-Based Human-in-the-Loop Gate:** Purchases under $250 execute autonomously; larger orders pause for manager authorization directly within the canvas.
+3. **PayPal Sandbox REST Integration:** Generates live PayPal Sandbox Orders (`/v2/checkout/orders`) and captures funds upon authorization.
+4. **Interactive Agent Graph (`@xyflow/react`):** Dynamic visualization of thoughts, tool queries, quotes, approval gates, and settlement statuses.
+5. **Institutional AG Grid Ledger (v36):** High-density dark Quartz themed grid with CSV export, real-time search, status pill renderers, and direct PayPal Sandbox inspection links.
+
+---
+
+## Quickstart
 
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment Variables
 
-## Learn More
+Copy `.env.example` to `.env.local`:
 
-To learn more about Next.js, take a look at the following resources:
+```env
+PAYPAL_CLIENT_ID=your_sandbox_client_id
+PAYPAL_CLIENT_SECRET=your_sandbox_client_secret
+PAYPAL_API_BASE=https://api-m.sandbox.paypal.com
+GEMINI_API_KEY=your_gemini_api_key
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Note: The platform includes high-fidelity mock fallback mode, allowing full evaluation and testing even before Sandbox API keys are provided.*
